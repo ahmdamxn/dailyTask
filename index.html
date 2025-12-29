@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Engineer’s Daily Assistant</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card { border: 1px solid #ddd; border-radius: 10px; padding: 14px; }
+    h2 { margin: 0 0 10px 0; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { border-bottom: 1px solid #eee; padding: 6px; text-align: left; vertical-align: top; }
+    .small { color: #666; font-size: 12px; }
+    .pill { display:inline-block; padding:2px 8px; border:1px solid #ddd; border-radius:999px; margin-right:6px; font-size:12px; }
+    .full { grid-column: 1 / -1; }
+    code { background:#f6f6f6; padding:2px 4px; border-radius:6px; }
+  </style>
+</head>
+<body>
+  <h1>Engineer’s Daily Assistant</h1>
+  <p class="small">Repo: <code>{{ repo_path }}</code> | Range: <code>{{ rev_range }}</code></p>
+
+  <div class="grid">
+    <div class="card">
+      <h2>What should I test today?</h2>
+      <table>
+        <tr><th>ID</th><th>Test</th><th>Score</th><th>Est</th></tr>
+        {% for item in planned %}
+        <tr>
+          <td>{{ item.id }}</td>
+          <td>
+            <b>{{ item.title }}</b><br>
+            <span class="small">{{ item.reason }}</span><br>
+            {% for tag in item.tags %}<span class="pill">{{ tag }}</span>{% endfor %}
+          </td>
+          <td>{{ item.risk }}</td>
+          <td>{{ item.est_minutes }}m</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>What changed in the repo?</h2>
+      <p class="small">Recent commits</p>
+      <table>
+        <tr><th>Date</th><th>Author</th><th>Subject</th></tr>
+        {% for c in commits %}
+        <tr>
+          <td>{{ c.date }}</td>
+          <td>{{ c.author }}</td>
+          <td><code>{{ c.sha[:7] }}</code> {{ c.subject }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+
+      <p class="small" style="margin-top:10px;">Files changed</p>
+      <ul>
+        {% for f in files %}
+          <li><code>{{ f }}</code></li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="card full">
+      <h2>Which alarms were touched recently?</h2>
+      {% if alarm_hits|length == 0 %}
+        <p class="small">No alarm IDs matched in diffs.</p>
+      {% else %}
+        <table>
+          <tr><th>Alarm ID</th><th>Hits</th></tr>
+          {% for k,v in alarm_hits.items() %}
+          <tr><td><code>{{ k }}</code></td><td>{{ v }}</td></tr>
+          {% endfor %}
+        </table>
+      {% endif %}
+      <p class="small" style="margin-top:10px;">
+        Tip: tune patterns in <code>config.yaml</code> to match your alarm naming.
+      </p>
+    </div>
+  </div>
+</body>
+</html>

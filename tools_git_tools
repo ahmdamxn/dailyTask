@@ -1,0 +1,47 @@
+from __future__ import annotations
+import subprocess
+from dataclasses import dataclass
+from typing import List, Tuple
+
+
+@dataclass
+class CommitInfo:
+    sha: str
+    date: str
+    author: str
+    subject: str
+
+
+def _run_git(repo_path: str, args: List[str]) -> str:
+    # Runs a git command in repo_path and returns stdout (or raises).
+    result = subprocess.run(
+        ["git"] + args,
+        cwd=repo_path,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr.strip() or "Git command failed")
+    return result.stdout
+
+
+def get_recent_commits(repo_path: str, max_commits: int = 30) -> List[CommitInfo]:
+    fmt = "%H|%ad|%an|%s"
+    out = _run_git(repo_path, ["log", f"-n{max_commits}", f"--pretty=format:{fmt}", "--date=short"])
+    commits: List[CommitInfo] = []
+    for line in out.splitlines():
+        parts = line.split("|", 3)
+        if len(parts) == 4:
+            commits.append(CommitInfo(sha=parts[0], date=parts[1], author=parts[2], subject=parts[3]))
+    return commits
+
+
+def get_changed_files_since(repo_path: str, rev_range: str = "HEAD~10..HEAD") -> List[str]:
+    out = _run_git(repo_path, ["diff", "--name-only", rev_range])
+    return [x.strip() for x in out.splitlines() if x.strip()]
+
+
+def get_diff_text_since(repo_path: str, rev_range: str = "HEAD~10..HEAD") -> str:
+    # Use unified=0 to reduce noise but keep enough context.
+    return _run_git(repo_path, ["diff", "--unified=0", rev_range])

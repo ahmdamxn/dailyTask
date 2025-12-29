@@ -1,0 +1,29 @@
+from __future__ import annotations
+import re
+from typing import Dict, List, Pattern, Tuple
+
+
+def compile_patterns(patterns: List[str]) -> List[Pattern[str]]:
+    return [re.compile(p) for p in patterns]
+
+
+def extract_alarm_hits(diff_text: str, patterns: List[Pattern[str]]) -> Dict[str, int]:
+    hits: Dict[str, int] = {}
+    for pat in patterns:
+        for m in pat.finditer(diff_text):
+            key = m.group(0)
+            hits[key] = hits.get(key, 0) + 1
+    return dict(sorted(hits.items(), key=lambda kv: (-kv[1], kv[0])))
+
+
+def extract_alarm_hits_by_file(diff_by_file: List[Tuple[str, str]], patterns: List[Pattern[str]]) -> Dict[str, List[str]]:
+    """
+    diff_by_file: list of (filename, diff_text_for_file)
+    returns: alarm_id -> list of filenames touched
+    """
+    alarm_to_files: Dict[str, set] = {}
+    for fname, dtext in diff_by_file:
+        for pat in patterns:
+            for m in pat.finditer(dtext):
+                alarm_to_files.setdefault(m.group(0), set()).add(fname)
+    return {k: sorted(list(v)) for k, v in sorted(alarm_to_files.items())}
