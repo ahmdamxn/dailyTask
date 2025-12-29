@@ -1,83 +1,655 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Engineer’s Daily Assistant</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QA Daily Task Journal</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 24px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .card { border: 1px solid #ddd; border-radius: 10px; padding: 14px; }
-    h2 { margin: 0 0 10px 0; }
+    :root {
+      --bg: #0f172a;
+      --panel: #0b1224;
+      --card: #0f1a35;
+      --border: #1d2c4f;
+      --accent: #7c3aed;
+      --accent-2: #22d3ee;
+      --muted: #9ca3af;
+      --text: #e5e7eb;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 32px 24px 48px;
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 20% 20%, rgba(124, 58, 237, 0.15), transparent 28%),
+                  radial-gradient(circle at 80% 0%, rgba(34, 211, 238, 0.18), transparent 25%),
+                  var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .page { max-width: 1200px; margin: 0 auto; }
+
+    header.hero {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 26px;
+    }
+
+    .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0 0 4px;
+    }
+
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    p.lead { margin: 0; color: #cdd4e0; }
+
+    .date-chip {
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.18), rgba(34, 211, 238, 0.18));
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: #f8fafc;
+      min-width: 220px;
+      box-shadow: var(--shadow);
+    }
+
+    .date-chip strong { display: block; font-size: 14px; color: #e0e7ff; }
+    .date-chip span { font-size: 13px; color: #cbd5f5; }
+
+    .grid { display: grid; gap: 16px; }
+    .grid.two { grid-template-columns: 1.5fr 1fr; }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+    .card {
+      background: linear-gradient(180deg, rgba(15, 26, 53, 0.9), rgba(11, 18, 36, 0.96));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card h2 { margin: 0 0 10px; font-size: 18px; }
+    .card h3 { margin: 0 0 6px; font-size: 16px; }
+    .muted { color: var(--muted); font-size: 13px; }
+
+    .summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .summary .item { border-radius: 12px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); padding: 12px; }
+    .summary .item strong { display: block; font-size: 22px; }
+    .summary .item span { color: var(--muted); font-size: 12px; }
+
+    form label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    input, select, textarea {
+      width: 100%;
+      background: #0b1224;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-size: 14px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent-2);
+      box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.15);
+    }
+
+    textarea { resize: vertical; min-height: 68px; }
+
+    .actions { display: flex; gap: 10px; margin-top: 12px; }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.15s ease, background 0.2s ease;
+    }
+
+    button.primary { background: linear-gradient(135deg, #7c3aed, #22d3ee); color: #0b1224; box-shadow: var(--shadow); }
+    button.secondary { background: rgba(255, 255, 255, 0.05); color: var(--text); border: 1px solid var(--border); }
+
+    button:hover { transform: translateY(-1px); }
+
     table { width: 100%; border-collapse: collapse; }
-    td, th { border-bottom: 1px solid #eee; padding: 6px; text-align: left; vertical-align: top; }
-    .small { color: #666; font-size: 12px; }
-    .pill { display:inline-block; padding:2px 8px; border:1px solid #ddd; border-radius:999px; margin-right:6px; font-size:12px; }
-    .full { grid-column: 1 / -1; }
-    code { background:#f6f6f6; padding:2px 4px; border-radius:6px; }
+    th, td { border-bottom: 1px solid var(--border); padding: 10px 8px; text-align: left; }
+    th { color: #cbd5f5; font-size: 13px; letter-spacing: 0.01em; }
+    td { vertical-align: top; }
+
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--border); color: #e2e8f0; }
+    .badge.status { background: rgba(124, 58, 237, 0.15); border-color: rgba(124, 58, 237, 0.35); }
+    .badge.priority { background: rgba(226, 232, 240, 0.08); }
+    .badge.env { background: rgba(34, 211, 238, 0.12); border-color: rgba(34, 211, 238, 0.35); color: #cffafe; }
+
+    .pill { display: inline-block; padding: 4px 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.06); color: #cbd5f5; font-size: 12px; border: 1px solid var(--border); }
+
+    .empty { text-align: center; padding: 24px 0; color: var(--muted); }
+
+    .filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+
+    .timestamp { color: #cbd5f5; font-weight: 600; font-size: 14px; }
+
+    .table-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .table-actions select { width: auto; min-width: 120px; }
+
+    .info-banner {
+      border-color: rgba(34, 211, 238, 0.35);
+      background: linear-gradient(135deg, rgba(34, 211, 238, 0.12), rgba(124, 58, 237, 0.08));
+    }
+
+    @media (max-width: 960px) {
+      header.hero { flex-direction: column; }
+      .grid.two { grid-template-columns: 1fr; }
+      .summary { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+      .filters { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
-  <h1>Engineer’s Daily Assistant</h1>
-  <p class="small">Repo: <code>{{ repo_path }}</code> | Range: <code>{{ rev_range }}</code></p>
+  <div class="page">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Test engineer journal</p>
+        <h1>QA Daily Task Log</h1>
+        <p class="lead">Capture what you planned, executed, debugged, and shipped today.</p>
+      </div>
+      <div class="date-chip">
+        <strong>Today</strong>
+        <span id="today-string"></span>
+      </div>
+    </header>
 
-  <div class="grid">
-    <div class="card">
-      <h2>What should I test today?</h2>
-      <table>
-        <tr><th>ID</th><th>Test</th><th>Score</th><th>Est</th></tr>
-        {% for item in planned %}
-        <tr>
-          <td>{{ item.id }}</td>
-          <td>
-            <b>{{ item.title }}</b><br>
-            <span class="small">{{ item.reason }}</span><br>
-            {% for tag in item.tags %}<span class="pill">{{ tag }}</span>{% endfor %}
-          </td>
-          <td>{{ item.risk }}</td>
-          <td>{{ item.est_minutes }}m</td>
-        </tr>
-        {% endfor %}
-      </table>
+    <div class="card info-banner" id="shared-banner" style="display:none; margin-bottom: 12px;">
+      <h3>Viewing a shared snapshot</h3>
+      <p class="muted" id="shared-banner-copy">This link is read-only so teammates can review your log. Make an editable copy to continue working.</p>
     </div>
 
-    <div class="card">
-      <h2>What changed in the repo?</h2>
-      <p class="small">Recent commits</p>
-      <table>
-        <tr><th>Date</th><th>Author</th><th>Subject</th></tr>
-        {% for c in commits %}
-        <tr>
-          <td>{{ c.date }}</td>
-          <td>{{ c.author }}</td>
-          <td><code>{{ c.sha[:7] }}</code> {{ c.subject }}</td>
-        </tr>
-        {% endfor %}
-      </table>
+    <section class="summary">
+      <div class="item">
+        <strong id="planned-count">0</strong>
+        <span>Planned</span>
+      </div>
+      <div class="item">
+        <strong id="active-count">0</strong>
+        <span>In progress</span>
+      </div>
+      <div class="item">
+        <strong id="blocked-count">0</strong>
+        <span>Blocked</span>
+      </div>
+      <div class="item">
+        <strong id="done-count">0</strong>
+        <span>Done today</span>
+      </div>
+    </section>
 
-      <p class="small" style="margin-top:10px;">Files changed</p>
-      <ul>
-        {% for f in files %}
-          <li><code>{{ f }}</code></li>
-        {% endfor %}
-      </ul>
+    <div class="grid two">
+      <div class="card">
+        <h2>Log a task</h2>
+        <p class="muted">Track the work you touch today so you can recap quickly.</p>
+        <form id="task-form">
+          <div class="grid three" style="margin-bottom: 10px; gap: 12px;">
+            <div>
+              <label for="task-title">Task title</label>
+              <input id="task-title" name="title" type="text" placeholder="Example: Regression on checkout" required>
+            </div>
+            <div>
+              <label for="task-type">Type</label>
+              <select id="task-type" name="type">
+                <option>Test planning</option>
+                <option>Manual execution</option>
+                <option>Automation</option>
+                <option>Bug investigation</option>
+                <option>Environment / data</option>
+                <option>Reporting</option>
+                <option>Regression triage</option>
+              </select>
+            </div>
+            <div>
+              <label for="task-priority">Priority</label>
+              <select id="task-priority" name="priority">
+                <option value="P0">P0 - Critical</option>
+                <option value="P1">P1 - High</option>
+                <option value="P2" selected>P2 - Medium</option>
+                <option value="P3">P3 - Low</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid three" style="margin-bottom: 10px; gap: 12px;">
+            <div>
+              <label for="task-status">Status</label>
+              <select id="task-status" name="status">
+                <option>Planned</option>
+                <option>In progress</option>
+                <option>Blocked</option>
+                <option>Done</option>
+              </select>
+            </div>
+            <div>
+              <label for="task-env">Environment</label>
+              <select id="task-env" name="environment">
+                <option>Staging</option>
+                <option>QA Lab</option>
+                <option>Production</option>
+                <option>Local</option>
+                <option>CI Run</option>
+              </select>
+            </div>
+            <div>
+              <label for="task-date">Date</label>
+              <input id="task-date" name="date" type="date" required>
+            </div>
+          </div>
+
+          <div class="grid three" style="margin-bottom: 10px; gap: 12px;">
+            <div>
+              <label for="task-start">Start time</label>
+              <input id="task-start" name="start" type="time">
+            </div>
+            <div>
+              <label for="task-duration">Duration (minutes)</label>
+              <input id="task-duration" name="duration" type="number" min="0" placeholder="45">
+            </div>
+            <div>
+              <label for="task-ticket">Linked ticket / build</label>
+              <input id="task-ticket" name="ticket" type="text" placeholder="BUG-1234 or build #" >
+            </div>
+          </div>
+
+          <div style="margin-bottom: 10px;">
+            <label for="task-blockers">Blockers or risks</label>
+            <textarea id="task-blockers" name="blockers" placeholder="Data reset failing on staging"></textarea>
+          </div>
+
+          <div style="margin-bottom: 10px;">
+            <label for="task-notes">Notes / evidence</label>
+            <textarea id="task-notes" name="notes" placeholder="Include key observations, logs, or repro steps"></textarea>
+          </div>
+
+          <div class="actions">
+            <button class="primary" type="submit">Add to log</button>
+            <button class="secondary" type="reset">Clear</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Filters</h2>
+        <p class="muted">Focus on specific dates, priorities, or statuses.</p>
+        <div class="filters" style="margin-bottom: 12px;">
+          <div>
+            <label for="filter-date">Date</label>
+            <input id="filter-date" type="date">
+          </div>
+          <div>
+            <label for="filter-status">Status</label>
+            <select id="filter-status">
+              <option value="">All statuses</option>
+              <option>Planned</option>
+              <option>In progress</option>
+              <option>Blocked</option>
+              <option>Done</option>
+            </select>
+          </div>
+          <div>
+            <label for="filter-priority">Priority</label>
+            <select id="filter-priority">
+              <option value="">All priorities</option>
+              <option value="P0">P0</option>
+              <option value="P1">P1</option>
+              <option value="P2">P2</option>
+              <option value="P3">P3</option>
+            </select>
+          </div>
+          <div>
+            <label for="filter-search">Search</label>
+            <input id="filter-search" type="search" placeholder="Title, ticket, notes" autocomplete="off">
+          </div>
+        </div>
+        <div class="actions">
+          <button class="primary" id="today-filter" type="button">Today only</button>
+          <button class="secondary" id="clear-filters" type="button">Clear filters</button>
+        </div>
+        <div class="actions" style="margin-top: 10px;">
+          <button class="primary" id="share-link" type="button">Copy shareable link</button>
+          <button class="secondary" id="adopt-shared" type="button" style="display:none;">Make editable copy</button>
+        </div>
+        <p class="muted" id="share-status" style="margin-top: 12px;">Your log is saved locally in this browser. Generate a link to let anyone view your snapshot.</p>
+      </div>
     </div>
 
-    <div class="card full">
-      <h2>Which alarms were touched recently?</h2>
-      {% if alarm_hits|length == 0 %}
-        <p class="small">No alarm IDs matched in diffs.</p>
-      {% else %}
+    <div class="card" style="margin-top: 16px;">
+      <h2>Task log</h2>
+      <p class="muted">Update statuses as you progress. Capture blockers to discuss in standups.</p>
+      <div style="overflow-x: auto;">
         <table>
-          <tr><th>Alarm ID</th><th>Hits</th></tr>
-          {% for k,v in alarm_hits.items() %}
-          <tr><td><code>{{ k }}</code></td><td>{{ v }}</td></tr>
-          {% endfor %}
+          <thead>
+            <tr>
+              <th style="width: 26%;">Task</th>
+              <th style="width: 28%;">Notes &amp; blockers</th>
+              <th style="width: 18%;">Time</th>
+              <th style="width: 14%;">Status / Priority</th>
+              <th style="width: 14%;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="task-rows"></tbody>
         </table>
-      {% endif %}
-      <p class="small" style="margin-top:10px;">
-        Tip: tune patterns in <code>config.yaml</code> to match your alarm naming.
-      </p>
+      </div>
     </div>
   </div>
+
+  <script>
+    const STORAGE_KEY = "qa-daily-log-v1";
+    const rowsEl = document.getElementById("task-rows");
+    const plannedCount = document.getElementById("planned-count");
+    const activeCount = document.getElementById("active-count");
+    const blockedCount = document.getElementById("blocked-count");
+    const doneCount = document.getElementById("done-count");
+
+    const filters = {
+      date: document.getElementById("filter-date"),
+      status: document.getElementById("filter-status"),
+      priority: document.getElementById("filter-priority"),
+      search: document.getElementById("filter-search"),
+    };
+
+    const form = document.getElementById("task-form");
+    const todayText = document.getElementById("today-string");
+    const todayBtn = document.getElementById("today-filter");
+    const clearFiltersBtn = document.getElementById("clear-filters");
+    const dateField = document.getElementById("task-date");
+    const shareBtn = document.getElementById("share-link");
+    const adoptBtn = document.getElementById("adopt-shared");
+    const shareStatus = document.getElementById("share-status");
+    const sharedBanner = document.getElementById("shared-banner");
+    const sharedBannerCopy = document.getElementById("shared-banner-copy");
+
+    let sharedView = false;
+
+    function formatToday() {
+      const now = new Date();
+      const formatter = new Intl.DateTimeFormat("en", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+      todayText.textContent = formatter.format(now);
+      const iso = now.toISOString().split("T")[0];
+      dateField.value = iso;
+      filters.date.value = iso;
+    }
+
+    function loadTasks() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        return saved ? JSON.parse(saved) : [];
+      } catch (error) {
+        console.error("Unable to load tasks", error);
+        return [];
+      }
+    }
+
+    let tasks = loadTasks();
+
+    function persist() {
+      if (sharedView) return;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    }
+
+    function setFormDisabled(disabled) {
+      form.querySelectorAll("input, select, textarea, button[type='submit'], button[type='reset']").forEach((el) => {
+        el.disabled = disabled;
+      });
+    }
+
+    function encodeTasksForShare(list) {
+      const json = JSON.stringify(list);
+      return encodeURIComponent(btoa(unescape(encodeURIComponent(json))));
+    }
+
+    function decodeSharedTasks(encoded) {
+      try {
+        const json = decodeURIComponent(escape(atob(encoded)));
+        const parsed = JSON.parse(json);
+        return Array.isArray(parsed) ? parsed : null;
+      } catch (error) {
+        console.error("Unable to decode shared tasks", error);
+        return null;
+      }
+    }
+
+    function enterSharedView() {
+      sharedView = true;
+      setFormDisabled(true);
+      adoptBtn.style.display = "inline-block";
+      sharedBanner.style.display = "block";
+      shareStatus.textContent = "Read-only snapshot. Make an editable copy to continue logging tasks.";
+    }
+
+    function exitSharedView() {
+      sharedView = false;
+      setFormDisabled(false);
+      adoptBtn.style.display = "none";
+      sharedBanner.style.display = "none";
+      shareStatus.textContent = "Editing enabled. Generate a link to let others view this log.";
+    }
+
+    function badge(text, className = "") {
+      return `<span class="badge ${className}">${text}</span>`;
+    }
+
+    function renderSummary() {
+      const totals = { planned: 0, active: 0, blocked: 0, done: 0 };
+      tasks.forEach((t) => {
+        if (t.status === "Planned") totals.planned += 1;
+        else if (t.status === "In progress") totals.active += 1;
+        else if (t.status === "Blocked") totals.blocked += 1;
+        else if (t.status === "Done") totals.done += 1;
+      });
+      plannedCount.textContent = totals.planned;
+      activeCount.textContent = totals.active;
+      blockedCount.textContent = totals.blocked;
+      doneCount.textContent = totals.done;
+    }
+
+    function applyFilters(list) {
+      return list.filter((task) => {
+        const dateMatch = !filters.date.value || task.date === filters.date.value;
+        const statusMatch = !filters.status.value || task.status === filters.status.value;
+        const priorityMatch = !filters.priority.value || task.priority === filters.priority.value;
+        const searchText = filters.search.value.toLowerCase().trim();
+        const searchMatch = !searchText || [task.title, task.type, task.ticket, task.notes, task.blockers]
+          .filter(Boolean)
+          .some((field) => field.toLowerCase().includes(searchText));
+        return dateMatch && statusMatch && priorityMatch && searchMatch;
+      });
+    }
+
+    function renderRows() {
+      const filtered = applyFilters(tasks);
+      rowsEl.innerHTML = "";
+      if (filtered.length === 0) {
+        rowsEl.innerHTML = `<tr><td class="empty" colspan="5">No tasks logged for this filter set.</td></tr>`;
+        renderSummary();
+        return;
+      }
+
+      filtered
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .forEach((task) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>
+              <div style="font-weight:600;">${task.title}</div>
+              <div class="muted">${task.type} • ${task.environment}</div>
+              ${task.ticket ? `<div class="pill" style="margin-top:6px;">${task.ticket}</div>` : ""}
+            </td>
+            <td>
+              ${task.notes ? `<div>${task.notes}</div>` : '<div class="muted">No notes yet</div>'}
+              ${task.blockers ? `<div class="pill" style="margin-top:6px;">Blocker: ${task.blockers}</div>` : ""}
+            </td>
+            <td>
+              <div class="timestamp">${task.date}${task.start ? ` • ${task.start}` : ""}</div>
+              ${task.duration ? `<div class="muted">${task.duration} minutes</div>` : ""}
+            </td>
+            <td>
+              <div class="table-actions">
+                ${badge(task.status, "status")}
+                ${badge(task.priority, "priority")}
+              </div>
+            </td>
+            <td>
+              ${
+                sharedView
+                  ? '<div class="muted">Read-only</div>'
+                  : `<div class="table-actions">
+                    <select data-id="${task.id}" class="status-select">
+                      <option ${task.status === "Planned" ? "selected" : ""}>Planned</option>
+                      <option ${task.status === "In progress" ? "selected" : ""}>In progress</option>
+                      <option ${task.status === "Blocked" ? "selected" : ""}>Blocked</option>
+                      <option ${task.status === "Done" ? "selected" : ""}>Done</option>
+                    </select>
+                    <button class="secondary" data-remove="${task.id}" type="button">Remove</button>
+                  </div>`
+              }
+            </td>
+          `;
+          rowsEl.appendChild(row);
+        });
+
+      if (!sharedView) {
+        rowsEl.querySelectorAll(".status-select").forEach((select) => {
+          select.addEventListener("change", (event) => {
+            const id = event.target.getAttribute("data-id");
+            const newStatus = event.target.value;
+            tasks = tasks.map((t) => (t.id === id ? { ...t, status: newStatus } : t));
+            persist();
+            renderSummary();
+            renderRows();
+          });
+        });
+
+        rowsEl.querySelectorAll("[data-remove]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            const id = event.target.getAttribute("data-remove");
+            tasks = tasks.filter((t) => t.id !== id);
+            persist();
+            renderSummary();
+            renderRows();
+          });
+        });
+      }
+
+      renderSummary();
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (sharedView) return;
+      const data = new FormData(form);
+      const task = {
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        title: data.get("title").trim(),
+        type: data.get("type"),
+        priority: data.get("priority"),
+        status: data.get("status"),
+        environment: data.get("environment"),
+        date: data.get("date"),
+        start: data.get("start"),
+        duration: data.get("duration"),
+        ticket: data.get("ticket"),
+        blockers: data.get("blockers").trim(),
+        notes: data.get("notes").trim(),
+        createdAt: Date.now(),
+      };
+
+      if (!task.title) return;
+      tasks = [task, ...tasks];
+      persist();
+      renderSummary();
+      renderRows();
+      form.reset();
+      dateField.value = new Date().toISOString().split("T")[0];
+    });
+
+    Object.values(filters).forEach((field) => {
+      field.addEventListener("input", () => renderRows());
+      field.addEventListener("change", () => renderRows());
+    });
+
+    todayBtn.addEventListener("click", () => {
+      filters.date.value = new Date().toISOString().split("T")[0];
+      renderRows();
+    });
+
+    clearFiltersBtn.addEventListener("click", () => {
+      filters.date.value = "";
+      filters.status.value = "";
+      filters.priority.value = "";
+      filters.search.value = "";
+      renderRows();
+    });
+
+    shareBtn.addEventListener("click", () => {
+      if (!tasks.length) {
+        shareStatus.textContent = "Add at least one task before sharing.";
+        return;
+      }
+      try {
+        const encoded = encodeTasksForShare(tasks);
+        const link = `${window.location.origin}${window.location.pathname}?tasks=${encoded}`;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(link).then(() => {
+            shareStatus.textContent = "Share link copied. Anyone with it can view your log.";
+          }).catch(() => {
+            shareStatus.textContent = link;
+          });
+        } else {
+          shareStatus.textContent = link;
+        }
+      } catch (error) {
+        console.error("Unable to build share link", error);
+        shareStatus.textContent = "Unable to build share link. Try again.";
+      }
+    });
+
+    adoptBtn.addEventListener("click", () => {
+      exitSharedView();
+      persist();
+      window.history.replaceState({}, "", window.location.pathname);
+      renderRows();
+      shareStatus.textContent = "You can now edit and reshare this log.";
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    const sharedParam = params.get("tasks");
+
+    if (sharedParam) {
+      const sharedTasks = decodeSharedTasks(sharedParam);
+      if (sharedTasks) {
+        tasks = sharedTasks;
+        enterSharedView();
+        sharedBannerCopy.textContent = "This link is read-only so teammates can review your log. Create an editable copy to keep updating it.";
+      } else {
+        shareStatus.textContent = "This shared link could not be read. Add tasks and create a new link.";
+      }
+    }
+
+    formatToday();
+    renderSummary();
+    renderRows();
+
+    if (sharedView) {
+      setFormDisabled(true);
+    }
+  </script>
 </body>
 </html>
