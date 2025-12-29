@@ -327,6 +327,7 @@
           <button class="secondary" id="adopt-shared" type="button" style="display:none;">Make editable copy</button>
         </div>
         <p class="muted" id="share-status" style="margin-top: 12px;">Your log is saved locally in this browser. Generate a link to let anyone view your snapshot.</p>
+        <p class="muted" style="margin-top: 12px;">Your log is saved locally in this browser.</p>
       </div>
     </div>
 
@@ -442,6 +443,9 @@
       shareStatus.textContent = "Editing enabled. Generate a link to let others view this log.";
     }
 
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    }
+
     function badge(text, className = "") {
       return `<span class="badge ${className}">${text}</span>`;
     }
@@ -520,6 +524,15 @@
                     <button class="secondary" data-remove="${task.id}" type="button">Remove</button>
                   </div>`
               }
+              <div class="table-actions">
+                <select data-id="${task.id}" class="status-select">
+                  <option ${task.status === "Planned" ? "selected" : ""}>Planned</option>
+                  <option ${task.status === "In progress" ? "selected" : ""}>In progress</option>
+                  <option ${task.status === "Blocked" ? "selected" : ""}>Blocked</option>
+                  <option ${task.status === "Done" ? "selected" : ""}>Done</option>
+                </select>
+                <button class="secondary" data-remove="${task.id}" type="button">Remove</button>
+              </div>
             </td>
           `;
           rowsEl.appendChild(row);
@@ -547,6 +560,26 @@
           });
         });
       }
+      rowsEl.querySelectorAll(".status-select").forEach((select) => {
+        select.addEventListener("change", (event) => {
+          const id = event.target.getAttribute("data-id");
+          const newStatus = event.target.value;
+          tasks = tasks.map((t) => (t.id === id ? { ...t, status: newStatus } : t));
+          persist();
+          renderSummary();
+          renderRows();
+        });
+      });
+
+      rowsEl.querySelectorAll("[data-remove]").forEach((button) => {
+        button.addEventListener("click", (event) => {
+          const id = event.target.getAttribute("data-remove");
+          tasks = tasks.filter((t) => t.id !== id);
+          persist();
+          renderSummary();
+          renderRows();
+        });
+      });
 
       renderSummary();
     }
