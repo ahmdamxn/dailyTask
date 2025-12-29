@@ -143,6 +143,11 @@
     .table-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .table-actions select { width: auto; min-width: 120px; }
 
+    .info-banner {
+      border-color: rgba(34, 211, 238, 0.35);
+      background: linear-gradient(135deg, rgba(34, 211, 238, 0.12), rgba(124, 58, 237, 0.08));
+    }
+
     @media (max-width: 960px) {
       header.hero { flex-direction: column; }
       .grid.two { grid-template-columns: 1fr; }
@@ -164,6 +169,11 @@
         <span id="today-string"></span>
       </div>
     </header>
+
+    <div class="card info-banner" id="shared-banner" style="display:none; margin-bottom: 12px;">
+      <h3>Viewing a shared snapshot</h3>
+      <p class="muted" id="shared-banner-copy">This link is read-only so teammates can review your log. Make an editable copy to continue working.</p>
+    </div>
 
     <section class="summary">
       <div class="item">
@@ -312,6 +322,11 @@
           <button class="primary" id="today-filter" type="button">Today only</button>
           <button class="secondary" id="clear-filters" type="button">Clear filters</button>
         </div>
+        <div class="actions" style="margin-top: 10px;">
+          <button class="primary" id="share-link" type="button">Copy shareable link</button>
+          <button class="secondary" id="adopt-shared" type="button" style="display:none;">Make editable copy</button>
+        </div>
+        <p class="muted" id="share-status" style="margin-top: 12px;">Your log is saved locally in this browser. Generate a link to let anyone view your snapshot.</p>
         <p class="muted" style="margin-top: 12px;">Your log is saved locally in this browser.</p>
       </div>
     </div>
@@ -356,6 +371,13 @@
     const todayBtn = document.getElementById("today-filter");
     const clearFiltersBtn = document.getElementById("clear-filters");
     const dateField = document.getElementById("task-date");
+    const shareBtn = document.getElementById("share-link");
+    const adoptBtn = document.getElementById("adopt-shared");
+    const shareStatus = document.getElementById("share-status");
+    const sharedBanner = document.getElementById("shared-banner");
+    const sharedBannerCopy = document.getElementById("shared-banner-copy");
+
+    let sharedView = false;
 
     function formatToday() {
       const now = new Date();
@@ -379,6 +401,48 @@
     let tasks = loadTasks();
 
     function persist() {
+      if (sharedView) return;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    }
+
+    function setFormDisabled(disabled) {
+      form.querySelectorAll("input, select, textarea, button[type='submit'], button[type='reset']").forEach((el) => {
+        el.disabled = disabled;
+      });
+    }
+
+    function encodeTasksForShare(list) {
+      const json = JSON.stringify(list);
+      return encodeURIComponent(btoa(unescape(encodeURIComponent(json))));
+    }
+
+    function decodeSharedTasks(encoded) {
+      try {
+        const json = decodeURIComponent(escape(atob(encoded)));
+        const parsed = JSON.parse(json);
+        return Array.isArray(parsed) ? parsed : null;
+      } catch (error) {
+        console.error("Unable to decode shared tasks", error);
+        return null;
+      }
+    }
+
+    function enterSharedView() {
+      sharedView = true;
+      setFormDisabled(true);
+      adoptBtn.style.display = "inline-block";
+      sharedBanner.style.display = "block";
+      shareStatus.textContent = "Read-only snapshot. Make an editable copy to continue logging tasks.";
+    }
+
+    function exitSharedView() {
+      sharedView = false;
+      setFormDisabled(false);
+      adoptBtn.style.display = "none";
+      sharedBanner.style.display = "none";
+      shareStatus.textContent = "Editing enabled. Generate a link to let others view this log.";
+    }
+
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
     }
 
@@ -447,6 +511,19 @@
               </div>
             </td>
             <td>
+              ${
+                sharedView
+                  ? '<div class="muted">Read-only</div>'
+                  : `<div class="table-actions">
+                    <select data-id="${task.id}" class="status-select">
+                      <option ${task.status === "Planned" ? "selected" : ""}>Planned</option>
+                      <option ${task.status === "In progress" ? "selected" : ""}>In progress</option>
+                      <option ${task.status === "Blocked" ? "selected" : ""}>Blocked</option>
+                      <option ${task.status === "Done" ? "selected" : ""}>Done</option>
+                    </select>
+                    <button class="secondary" data-remove="${task.id}" type="button">Remove</button>
+                  </div>`
+              }
               <div class="table-actions">
                 <select data-id="${task.id}" class="status-select">
                   <option ${task.status === "Planned" ? "selected" : ""}>Planned</option>
@@ -461,6 +538,28 @@
           rowsEl.appendChild(row);
         });
 
+      if (!sharedView) {
+        rowsEl.querySelectorAll(".status-select").forEach((select) => {
+          select.addEventListener("change", (event) => {
+            const id = event.target.getAttribute("data-id");
+            const newStatus = event.target.value;
+            tasks = tasks.map((t) => (t.id === id ? { ...t, status: newStatus } : t));
+            persist();
+            renderSummary();
+            renderRows();
+          });
+        });
+
+        rowsEl.querySelectorAll("[data-remove]").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            const id = event.target.getAttribute("data-remove");
+            tasks = tasks.filter((t) => t.id !== id);
+            persist();
+            renderSummary();
+            renderRows();
+          });
+        });
+      }
       rowsEl.querySelectorAll(".status-select").forEach((select) => {
         select.addEventListener("change", (event) => {
           const id = event.target.getAttribute("data-id");
@@ -487,6 +586,7 @@
 
     form.addEventListener("submit", (event) => {
       event.preventDefault();
+      if (sharedView) return;
       const data = new FormData(form);
       const task = {
         id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
@@ -531,9 +631,58 @@
       renderRows();
     });
 
+    shareBtn.addEventListener("click", () => {
+      if (!tasks.length) {
+        shareStatus.textContent = "Add at least one task before sharing.";
+        return;
+      }
+      try {
+        const encoded = encodeTasksForShare(tasks);
+        const link = `${window.location.origin}${window.location.pathname}?tasks=${encoded}`;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(link).then(() => {
+            shareStatus.textContent = "Share link copied. Anyone with it can view your log.";
+          }).catch(() => {
+            shareStatus.textContent = link;
+          });
+        } else {
+          shareStatus.textContent = link;
+        }
+      } catch (error) {
+        console.error("Unable to build share link", error);
+        shareStatus.textContent = "Unable to build share link. Try again.";
+      }
+    });
+
+    adoptBtn.addEventListener("click", () => {
+      exitSharedView();
+      persist();
+      window.history.replaceState({}, "", window.location.pathname);
+      renderRows();
+      shareStatus.textContent = "You can now edit and reshare this log.";
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    const sharedParam = params.get("tasks");
+
+    if (sharedParam) {
+      const sharedTasks = decodeSharedTasks(sharedParam);
+      if (sharedTasks) {
+        tasks = sharedTasks;
+        enterSharedView();
+        sharedBannerCopy.textContent = "This link is read-only so teammates can review your log. Create an editable copy to keep updating it.";
+      } else {
+        shareStatus.textContent = "This shared link could not be read. Add tasks and create a new link.";
+      }
+    }
+
     formatToday();
     renderSummary();
     renderRows();
+
+    if (sharedView) {
+      setFormDisabled(true);
+    }
   </script>
 </body>
 </html>
